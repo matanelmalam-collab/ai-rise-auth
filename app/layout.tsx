@@ -145,8 +145,8 @@ export default function RootLayout({
       signUpUrl="/signup"
       signInFallbackRedirectUrl="/callback"
       signUpFallbackRedirectUrl="/callback"
-      afterSignInUrl="/callback"
-      afterSignUpUrl="/callback"
+      signInForceRedirectUrl="/callback"
+      signUpForceRedirectUrl="/callback"
     >
       <html lang="he" dir="rtl">
         <head>

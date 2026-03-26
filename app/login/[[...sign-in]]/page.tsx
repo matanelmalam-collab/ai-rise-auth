@@ -58,8 +58,8 @@ export default function LoginPage() {
           path="/login"
           routing="path"
           signUpUrl="/signup"
-          afterSignInUrl="/callback"
-          redirectUrl="/callback"
+          forceRedirectUrl="/callback"
+          fallbackRedirectUrl="/callback"
         />
       </div>
 
