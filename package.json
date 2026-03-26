@@ -1,0 +1,25 @@
+{
+  "name": "ai-rise-auth",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI Rise Hebrew Auth Gateway — Clerk + Base44 Session Bridge",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@clerk/localizations": "^3.12.0",
+    "@clerk/nextjs": "^6.12.0",
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}
