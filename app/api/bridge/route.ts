@@ -51,41 +51,27 @@ export async function POST(request: NextRequest) {
       user.lastName || undefined
     );
 
-    // Determine cookie domain
-    const cookieDomain = process.env.NEXT_PUBLIC_COOKIE_DOMAIN || ".ai-rise.co.il";
+    // Pass token in URL since login.ai-rise.co.il and base44.app
+    // are different domains — cookies can't cross domain boundaries
+    const redirectUrl = getBase44RedirectUrl(token);
 
-    // Build response with redirect URL
-    const redirectUrl = getBase44RedirectUrl();
-    const response = NextResponse.json({
+    console.log("[Bridge Success]", {
+      email,
+      isNewAccount,
+      hasToken: !!token,
+      redirectUrl: redirectUrl.replace(token, "***")
+    });
+
+    return NextResponse.json({
       success: true,
       isNewAccount,
       redirectUrl,
     });
-
-    // Set Base44 token as httpOnly cookie on parent domain
-    // This allows the Base44 app to pick it up automatically
-    response.cookies.set("base44_token", token, {
-      domain: cookieDomain,
-      path: "/",
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-    });
-
-    // Also set a non-httpOnly flag so client JS can detect login state
-    response.cookies.set("ai_rise_auth", "1", {
-      domain: cookieDomain,
-      path: "/",
-      httpOnly: false,
-      secure: true,
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30,
-    });
-
-    return response;
   } catch (error) {
-    console.error("[Bridge Error]", error);
+    console.error("[Bridge Error]", {
+      message: error instanceof Error ? error.message : "Unknown",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
 
     const message = error instanceof Error ? error.message : "Internal server error";
 
