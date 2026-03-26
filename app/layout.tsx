@@ -141,6 +141,10 @@ export default function RootLayout({
     <ClerkProvider
       localization={aiRiseHebrewLocalization as any}
       appearance={clerkAppearance}
+      signInUrl="/login"
+      signUpUrl="/signup"
+      signInFallbackRedirectUrl="/callback"
+      signUpFallbackRedirectUrl="/callback"
       afterSignInUrl="/callback"
       afterSignUpUrl="/callback"
     >
