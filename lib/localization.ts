@@ -1,5 +1,4 @@
 import { heIL } from "@clerk/localizations";
-import type { DeepPartial } from "@clerk/types";
 
 /**
  * AI Rise Hebrew Localization
@@ -11,12 +10,12 @@ import type { DeepPartial } from "@clerk/types";
  * These overrides make the auth experience feel warm, personal, and
  * reassuring — matching AI Rise's landing page tone.
  */
-export const aiRiseHebrewLocalization: DeepPartial<typeof heIL> = {
+export const aiRiseHebrewLocalization: Record<string, any> = {
   ...heIL,
 
   signUp: {
     start: {
-      title: "בואו להתחיל!",
+      title: "בואו נתחיל!",
       subtitle: "2 שיעורים חינם — בלי כרטיס אשראי",
       actionText: "כבר יש לכם חשבון?",
       actionLink: "היכנסו כאן",
@@ -27,7 +26,6 @@ export const aiRiseHebrewLocalization: DeepPartial<typeof heIL> = {
       formTitle: "קישור לאימות",
       formSubtitle: "השתמשו בקישור שנשלח לכתובת האימייל שלכם",
       resendButton: "שלחו שוב",
-      loadingText: "מתחברים...",
     },
     phoneCode: {
       title: "בדקו את ההודעות בנייד",
@@ -51,7 +49,6 @@ export const aiRiseHebrewLocalization: DeepPartial<typeof heIL> = {
       formTitle: "קישור להתחברות",
       formSubtitle: "השתמשו בקישור שנשלח אליכם באימייל",
       resendButton: "שלחו שוב",
-      loadingText: "מתחברים...",
     },
     phoneCode: {
       title: "בדקו את ההודעות בנייד",
