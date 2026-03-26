@@ -1,195 +1,79 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   trackAuthCompleted,
-  trackBridgeSuccess,
-  trackBridgeError,
   trackDashboardLanded,
 } from "@/lib/analytics";
 
 /**
- * Callback Page — Post-Authentication Bridge
+ * Callback Page — Post-Authentication Redirect
  *
  * This page fires after Clerk authentication completes.
- * It silently bridges the Clerk session to a Base44 account,
- * then redirects the user to the course dashboard.
+ * It tracks the sign-up event and redirects the user
+ * directly to the Base44 course dashboard.
  *
- * The user sees a brief loading animation while this happens.
- * Typical time: 1-3 seconds.
+ * The user sees a brief loading animation (~1 second).
  */
 
-type BridgeStatus = "loading" | "success" | "error";
+const BASE44_APP_URL =
+  process.env.NEXT_PUBLIC_BASE44_APP_URL || "https://ai-for-life.base44.app";
 
 export default function CallbackPage() {
   const { user, isLoaded } = useUser();
-  const [status, setStatus] = useState<BridgeStatus>("loading");
-  const [errorMessage, setErrorMessage] = useState("");
-  const bridgeAttempted = useRef(false);
+  const redirected = useRef(false);
   const startTime = useRef(Date.now());
 
   useEffect(() => {
-    if (!isLoaded || !user || bridgeAttempted.current) return;
-    bridgeAttempted.current = true;
+    if (!isLoaded || redirected.current) return;
 
-    async function bridge() {
-      try {
-        // Determine auth method from Clerk session
-        const method = detectAuthMethod(user!);
-        const isNewUser = isRecentlyCreated(user!);
-        const authTimeSeconds = (Date.now() - startTime.current) / 1000;
+    // Even if user is null (edge case), redirect to Base44
+    // so the user is never stuck on this page
+    redirected.current = true;
 
-        // Track auth completion
-        trackAuthCompleted(method, isNewUser, authTimeSeconds);
-
-        // Call our bridge API
-        const response = await fetch("/api/bridge", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: user!.primaryEmailAddress?.emailAddress,
-            clerkUserId: user!.id,
-            firstName: user!.firstName,
-            lastName: user!.lastName,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Bridge failed (${response.status})`);
-        }
-
-        const data = await response.json();
-
-        // Track bridge success
-        trackBridgeSuccess(data.isNewAccount);
-
-        setStatus("success");
-
-        // Track dashboard landing
-        const totalFlowSeconds = (Date.now() - startTime.current) / 1000;
-        trackDashboardLanded(totalFlowSeconds);
-
-        // Redirect to Base44 course dashboard
-        window.location.href = data.redirectUrl;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Unknown error";
-        setErrorMessage(message);
-        setStatus("error");
-
-        trackBridgeError("bridge_failure", message);
-      }
+    if (user) {
+      // Track auth completion
+      const method = detectAuthMethod(user);
+      const isNewUser = isRecentlyCreated(user);
+      const authTimeSeconds = (Date.now() - startTime.current) / 1000;
+      trackAuthCompleted(method, isNewUser, authTimeSeconds);
     }
 
-    bridge();
+    // Track dashboard landing
+    const totalFlowSeconds = (Date.now() - startTime.current) / 1000;
+    trackDashboardLanded(totalFlowSeconds);
+
+    // Redirect to Base44 course dashboard
+    window.location.href = BASE44_APP_URL;
   }, [isLoaded, user]);
 
-  // --- Loading State ---
-  if (status === "loading") {
-    return (
-      <main style={containerStyle}>
-        <div style={cardStyle}>
-          {/* Spinner */}
-          <div style={spinnerContainerStyle}>
-            <div
-              style={{
-                width: "48px",
-                height: "48px",
-                border: "4px solid #E8E0D8",
-                borderTop: "4px solid #C8813A",
-                borderRadius: "50%",
-                animation: "spin 1s linear infinite",
-              }}
-            />
-          </div>
-          <h2 style={headingStyle}>מכינים את הקורס שלכם...</h2>
-          <p style={subtextStyle}>רק עוד רגע קטן ✨</p>
-        </div>
-
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
-      </main>
-    );
-  }
-
-  // --- Success State (brief flash before redirect) ---
-  if (status === "success") {
-    return (
-      <main style={containerStyle}>
-        <div style={cardStyle}>
-          <div style={{ fontSize: "48px", marginBottom: "16px" }}>🎉</div>
-          <h2 style={headingStyle}>ברוכים הבאים!</h2>
-          <p style={subtextStyle}>מעבירים אתכם לקורס...</p>
-        </div>
-      </main>
-    );
-  }
-
-  // --- Error State ---
   return (
     <main style={containerStyle}>
       <div style={cardStyle}>
-        <div style={{ fontSize: "48px", marginBottom: "16px" }}>😕</div>
-        <h2 style={headingStyle}>משהו השתבש</h2>
-        <p style={subtextStyle}>
-          לא הצלחנו לחבר את החשבון שלכם. אל דאגה — זה לא אתם, זה אנחנו.
-        </p>
-
-        {/* Retry button */}
-        <button
-          onClick={() => {
-            bridgeAttempted.current = false;
-            setStatus("loading");
-            setErrorMessage("");
-          }}
-          style={retryButtonStyle}
-        >
-          נסו שוב
-        </button>
-
-        {/* Direct link fallback */}
-        <a
-          href={process.env.NEXT_PUBLIC_BASE44_APP_URL || "#"}
-          style={fallbackLinkStyle}
-        >
-          או לחצו כאן לגשת לקורס ישירות →
-        </a>
-
-        {/* WhatsApp support */}
-        <p style={{ ...subtextStyle, marginTop: "24px", fontSize: "13px" }}>
-          עדיין לא עובד?{" "}
-          <a
-            href="https://wa.me/972XXXXXXXXX"
-            style={{ color: "#C8813A", textDecoration: "underline" }}
-          >
-            שלחו לנו הודעה בוואטסאפ
-          </a>
-        </p>
-
-        {/* Error details (dev only) */}
-        {process.env.NODE_ENV === "development" && errorMessage && (
-          <pre
+        {/* Spinner */}
+        <div style={spinnerContainerStyle}>
+          <div
             style={{
-              marginTop: "16px",
-              padding: "12px",
-              backgroundColor: "#FFF5F5",
-              borderRadius: "8px",
-              fontSize: "12px",
-              color: "#C53030",
-              direction: "ltr",
-              textAlign: "left",
-              overflow: "auto",
+              width: "48px",
+              height: "48px",
+              border: "4px solid #E8E0D8",
+              borderTop: "4px solid #C8813A",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
             }}
-          >
-            {errorMessage}
-          </pre>
-        )}
+          />
+        </div>
+        <h2 style={headingStyle}>מכינים את הקורס שלכם...</h2>
+        <p style={subtextStyle}>רק עוד רגע קטן ✨</p>
       </div>
+
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </main>
   );
 }
@@ -208,7 +92,6 @@ function isRecentlyCreated(user: any): boolean {
   if (!user?.createdAt) return true;
   const created = new Date(user.createdAt).getTime();
   const now = Date.now();
-  // If created less than 60 seconds ago, it's a new signup
   return now - created < 60_000;
 }
 
@@ -255,24 +138,4 @@ const spinnerContainerStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "center",
   marginBottom: "24px",
-};
-
-const retryButtonStyle: React.CSSProperties = {
-  backgroundColor: "#C8813A",
-  color: "#FFFFFF",
-  fontSize: "16px",
-  fontWeight: "600",
-  padding: "12px 32px",
-  borderRadius: "12px",
-  border: "none",
-  cursor: "pointer",
-  marginTop: "8px",
-};
-
-const fallbackLinkStyle: React.CSSProperties = {
-  display: "block",
-  marginTop: "16px",
-  fontSize: "14px",
-  color: "#C8813A",
-  textDecoration: "underline",
 };
